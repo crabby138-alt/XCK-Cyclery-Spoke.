@@ -14,7 +14,7 @@ const SEED_LISTINGS = [
     price: 45000000,
     currentBid: 48500000,
     bidsCount: 12,
-    endTime: Date.now() + 4 * 3600000, // 4 giờ nữa
+    endTime: Date.now() + 4 * 3600000,
     image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop&q=60",
     location: "TP. Hồ Chí Minh",
     condition: "95% (Like New)",
@@ -58,7 +58,8 @@ const CATEGORIES = [
 ];
 
 export default function Spoke() {
-  const [listings, setListings] = useState([]);
+  // Vá lỗi 1: Gán thẳng SEED_LISTINGS làm mảng mặc định ban đầu thay vì mảng rỗng để tránh bộ lọc bị lỗi logic
+  const [listings, setListings] = useState(SEED_LISTINGS);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState("all");
   const [type, setType] = useState("all");
@@ -99,11 +100,10 @@ export default function Spoke() {
         if (savedData) {
           setListings(JSON.parse(savedData));
         } else {
-          setListings(SEED_LISTINGS);
           localStorage.setItem("spoke:listings", JSON.stringify(SEED_LISTINGS));
         }
       } catch (e) {
-        setListings(SEED_LISTINGS);
+        console.error(e);
       } finally {
         setLoading(false);
       }
@@ -127,9 +127,9 @@ export default function Spoke() {
     toastTimer.current = setTimeout(() => setToast(""), 3000);
   }
 
-  // Bộ lọc và sắp xếp dữ liệu
+  // Bộ lọc và sắp xếp dữ liệu (Đã sửa lỗi tạo bản sao mảng để tránh biến đổi state gốc)
   const filtered = useMemo(() => {
-    let res = [...listings];
+    let res = Array.isArray(listings) ? [...listings] : [];
     if (category !== "all") res = res.filter((x) => x.category === category);
     if (type !== "all") res = res.filter((x) => x.type === type);
     if (search.trim()) {
@@ -137,8 +137,8 @@ export default function Spoke() {
       res = res.filter((x) => x.title.toLowerCase().includes(q) || x.description.toLowerCase().includes(q));
     }
     if (sort === "newest") res.reverse();
-    else if (sort === "price_asc") res.sort((a, b) => a.price - b.price);
-    else if (sort === "price_desc") res.sort((a, b) => b.price - a.price);
+    else if (sort === "price_asc") res.sort((a, b) => (a.price || 0) - (b.price || 0));
+    else if (sort === "price_desc") res.sort((a, b) => (b.price || 0) - (a.price || 0));
     return res;
   }, [listings, category, type, search, sort]);
 
@@ -191,15 +191,15 @@ export default function Spoke() {
 
     persist([item, ...listings]);
     setShowSell(false);
-    // Reset form
     setNewTitle("");
     setNewPrice("");
     setNewDescription("");
     showToast("Đăng tin thành công!");
   }
 
-  // Định dạng hiển thị tiền tệ Việt Nam VNĐ
+  // Vá lỗi 2: Bổ sung bộ lọc an toàn chống Crash khi giá trị truyền vào trống hoặc không hợp lệ
   function fmtPrice(v) {
+    if (v === undefined || v === null || isNaN(v)) return "0 ₫";
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
   }
 
@@ -219,7 +219,6 @@ export default function Spoke() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 antialiased font-sans pb-12">
-      {/* CSS Nhúng trực tiếp chống lỗi Tailwind CDN build */}
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -237,7 +236,6 @@ export default function Spoke() {
             </span>
           </div>
 
-          {/* Ô Tìm Kiếm */}
           <div className="flex-1 max-w-md relative hidden sm:block">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -260,7 +258,6 @@ export default function Spoke() {
 
       {/* Giao diện chính */}
       <main className="max-w-7xl mx-auto px-4 mt-6">
-        {/* Thanh tìm kiếm trên Mobile */}
         <div className="relative mb-6 sm:hidden">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -272,7 +269,6 @@ export default function Spoke() {
           />
         </div>
 
-        {/* Danh mục hàng ngang dạng cuộn */}
         <div className="overflow-x-auto no-scrollbar flex gap-3 pb-2">
           {CATEGORIES.map((x) => {
             const Icon = x.icon;
@@ -296,7 +292,6 @@ export default function Spoke() {
           })}
         </div>
 
-        {/* Thanh lọc phụ và Sắp xếp */}
         <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-200">
           <div className="flex gap-1.5 bg-slate-200/60 p-1 rounded-xl">
             <button
@@ -336,7 +331,6 @@ export default function Spoke() {
           </div>
         </div>
 
-        {/* Trạng thái Loading hoặc Trống */}
         {loading ? (
           <div className="py-20 text-center text-slate-400 text-sm">Đang tải sản phẩm dữ liệu...</div>
         ) : filtered.length === 0 ? (
@@ -348,7 +342,6 @@ export default function Spoke() {
             <p className="text-sm text-slate-500">Hãy thử thay đổi từ khóa hoặc bộ lọc danh mục xem sao nhé.</p>
           </div>
         ) : (
-          /* Grid Danh Sách Tin Đăng */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
             {filtered.map((item) => {
               const isAuction = item.type === "auction";
@@ -451,7 +444,6 @@ export default function Spoke() {
                 {selected.description}
               </div>
 
-              {/* Khu vực tương tác: Đấu giá / Mua đứt */}
               <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
