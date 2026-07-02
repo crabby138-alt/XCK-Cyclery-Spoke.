@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Bike, Route, TreePine, Cog, Shirt, Wrench, Search, X, Plus,
+  Bike, Milestone, TreePine, Cog, Shirt, Wrench, Search, X, Plus,
   Clock, MapPin, ChevronDown, Gavel, Tag, RotateCcw
 } from "lucide-react";
 
@@ -12,7 +12,7 @@ import {
 
 const CATEGORIES = [
   { key: "road", label: "Road", icon: Bike, grad: "linear-gradient(135deg, var(--route), var(--route-dark))" },
-  { key: "gravel", label: "Gravel & CX", icon: Route, grad: "linear-gradient(135deg, var(--steel), var(--asphalt))" },
+  { key: "gravel", label: "Gravel & CX", icon: Milestone, grad: "linear-gradient(135deg, var(--steel), var(--asphalt))" },
   { key: "mountain", label: "Mountain", icon: TreePine, grad: "linear-gradient(135deg, var(--asphalt), var(--route-dark))" },
   { key: "drivetrain", label: "Wheels & Drivetrain", icon: Cog, grad: "linear-gradient(135deg, #9aa3a0, var(--steel))" },
   { key: "apparel", label: "Apparel", icon: Shirt, grad: "linear-gradient(135deg, var(--flare), #b8401d)" },
