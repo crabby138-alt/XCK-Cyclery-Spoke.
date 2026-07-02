@@ -4,441 +4,58 @@ import {
   Clock, MapPin, ChevronDown, Gavel, Tag, RotateCcw
 } from "lucide-react";
 
-/* ---------------------------------------------------------
-   SPOKE — a cycling-specific marketplace demo
-   Browsing, filtering, in-memory bidding, and listing gear.
-   No checkout/payments — this is a working prototype only.
---------------------------------------------------------- */
-
-const CATEGORIES = [
-  { key: "road", label: "Road", icon: Bike, grad: "linear-gradient(135deg, var(--route), var(--route-dark))" },
-  { key: "gravel", label: "Gravel & CX", icon: Milestone, grad: "linear-gradient(135deg, var(--steel), var(--asphalt))" },
-  { key: "mountain", label: "Mountain", icon: TreePine, grad: "linear-gradient(135deg, var(--asphalt), var(--route-dark))" },
-  { key: "drivetrain", label: "Wheels & Drivetrain", icon: Cog, grad: "linear-gradient(135deg, #9aa3a0, var(--steel))" },
-  { key: "apparel", label: "Apparel", icon: Shirt, grad: "linear-gradient(135deg, var(--flare), #b8401d)" },
-  { key: "accessories", label: "Accessories & Tools", icon: Wrench, grad: "linear-gradient(135deg, var(--caution), #b98a04)" },
-];
-
-const CONDITIONS = [
-  { key: "showroom", label: "Showroom", fill: 4 },
-  { key: "race-ready", label: "Race-Ready", fill: 3 },
-  { key: "well-ridden", label: "Well-Ridden", fill: 2 },
-  { key: "project", label: "Project Bike", fill: 1 },
-];
-
-const catMeta = (key) => CATEGORIES.find((c) => c.key === key) || CATEGORIES[0];
-const condMeta = (key) => CONDITIONS.find((c) => c.key === key) || CONDITIONS[1];
-
-const now0 = Date.now();
-const days = (n) => n * 86400000;
-const hours = (n) => n * 3600000;
-
+// Dữ liệu mẫu ban đầu (Seed Data)
 const SEED_LISTINGS = [
   {
-    id: "l1", title: "2021 Specialized Tarmac SL7 Expert — 56cm", category: "road",
-    type: "auction", startingBid: 2200, currentBid: 2850, buyNow: 3600, bidCount: 14,
-    bidEnd: now0 + hours(5), condition: "race-ready", location: "Boulder, CO",
-    createdAt: now0 - hours(30),
-    description: "Full Ultegra Di2 build, Roval Rapide CLX wheels. One small chip on the down tube (pictured), otherwise race-day ready. Comes with extra 30mm rear tire.",
-    bidHistory: [2200, 2350, 2500, 2650, 2850],
+    id: "1",
+    title: "Xe đạp Road Specialized Tarmac SL7",
+    category: "road",
+    type: "auction",
+    price: 45000000,
+    currentBid: 48500000,
+    bidsCount: 12,
+    endTime: Date.now() + 4 * 3600000, // 4 giờ nữa
+    image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop&q=60",
+    location: "TP. Hồ Chí Minh",
+    condition: "95% (Like New)",
+    seller: "Nguyễn Văn A",
+    description: "Cần lên đời nên nhượng lại em Tarmac SL7 bản Shimano Ultegra Di2. Xe đi kỹ, bảo dưỡng định kỳ, không đâm đụng té ngã."
   },
   {
-    id: "l2", title: "Shimano GRX 815 Groupset (11-speed, 2x)", category: "drivetrain",
-    type: "fixed", price: 640, condition: "showroom", location: "Bend, OR",
-    createdAt: now0 - hours(4),
-    description: "Bought for a build that never happened. Every part still in original boxes — shifters, derailleurs, crankset (46/30), brakes. Never mounted.",
+    id: "2",
+    title: "Khung sườn Carbon Trek Emonda SLR",
+    category: "parts",
+    type: "buy_now",
+    price: 32000000,
+    image: "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=500&auto=format&fit=crop&q=60",
+    location: "Hà Nội",
+    condition: "99% (New with box)",
+    seller: "Trần Minh B",
+    description: "Sườn Trek Emonda SLR siêu nhẹ, size 52 thích hợp cho người từ 1m68 - 1m75. Hàng chính hãng phân phối tại Việt Nam."
   },
   {
-    id: "l3", title: "Enve SES 4.5 Carbon Wheelset", category: "drivetrain",
-    type: "auction", startingBid: 900, currentBid: 1180, buyNow: null, bidCount: 9,
-    bidEnd: now0 + days(2) + hours(3), condition: "well-ridden", location: "Marin, CA",
-    createdAt: now0 - days(1),
-    description: "Two seasons of gravel and road miles. True and tensioned last month. Ceramic bearing hubs, small brake track wear consistent with use.",
-    bidHistory: [900, 980, 1050, 1180],
-  },
-  {
-    id: "l4", title: "Rapha Pro Team Jersey — Men's Medium", category: "apparel",
-    type: "fixed", price: 65, condition: "well-ridden", location: "Chapel Hill, NC",
-    createdAt: now0 - hours(50),
-    description: "Worn maybe a dozen times, washed after every ride. No pilling, zipper works smoothly. Classic black/red colorway.",
-  },
-  {
-    id: "l5", title: "Wahoo KICKR Core Smart Trainer", category: "accessories",
-    type: "fixed", price: 380, condition: "race-ready", location: "Flagstaff, AZ",
-    createdAt: now0 - hours(12),
-    description: "One winter of Zwift, stored indoors year-round. Includes original cassette (11-speed) already mounted. Belt in great shape.",
-  },
-  {
-    id: "l6", title: "Santa Cruz Hightower CC — Large", category: "mountain",
-    type: "auction", startingBid: 3400, currentBid: 3400, buyNow: 4800, bidCount: 0,
-    bidEnd: now0 + days(4), condition: "race-ready", location: "Fruita, CO",
-    createdAt: now0 - hours(2),
-    description: "2022 build, XX1 Eagle, Fox Factory suspension front and rear. No bidders yet — this thing deserves someone who rides it hard.",
-    bidHistory: [3400],
-  },
-  {
-    id: "l7", title: "Campagnolo Super Record 12s Cassette (11-32)", category: "drivetrain",
-    type: "fixed", price: 210, condition: "showroom", location: "Santa Barbara, CA",
-    createdAt: now0 - hours(70),
-    description: "Wrong ratio for my setup, still sealed. Titanium sprockets, the good stuff.",
-  },
-  {
-    id: "l8", title: "Garmin Edge 840 GPS Computer", category: "accessories",
-    type: "auction", startingBid: 260, currentBid: 305, buyNow: 400, bidCount: 6,
-    bidEnd: now0 + hours(18), condition: "well-ridden", location: "Tucson, AZ",
-    createdAt: now0 - days(2),
-    description: "Screen has zero scratches, always ran with a case. Factory reset and ready for a new owner. Charger included.",
-    bidHistory: [260, 275, 290, 305],
-  },
-  {
-    id: "l9", title: "Castelli Gabba RoS Jacket — Women's Small", category: "apparel",
-    type: "fixed", price: 95, condition: "showroom", location: "Boise, ID",
-    createdAt: now0 - hours(8),
-    description: "Wrong size for me, tags still attached. The wet-weather jacket everyone recommends for a reason.",
-  },
-  {
-    id: "l10", title: "Chris King R45 Hubset — Boost", category: "drivetrain",
-    type: "auction", startingBid: 320, currentBid: 410, buyNow: null, bidCount: 11,
-    bidEnd: now0 + hours(40), condition: "well-ridden", location: "Portland, OR",
-    createdAt: now0 - days(1) - hours(6),
-    description: "The hubs that outlive the bike. Recently serviced, that unmistakable buzz fully intact. Center-lock, boost spacing.",
-    bidHistory: [320, 350, 380, 410],
-  },
-  {
-    id: "l11", title: "Surly Straggler Steel Gravel Frame — 54cm", category: "gravel",
-    type: "fixed", price: 480, condition: "project", location: "Asheville, NC",
-    createdAt: now0 - days(3),
-    description: "Frame and fork only. A few paint chips near the dropouts, no dents or damage to the steel. Ready for your winter build project.",
-  },
-  {
-    id: "l12", title: "Park Tool PCS-10.3 Repair Stand", category: "accessories",
-    type: "fixed", price: 145, condition: "race-ready", location: "Girona, Spain",
-    createdAt: now0 - hours(20),
-    description: "Clamp still holds tight, no wobble in the legs. Selling because I upgraded to a wall mount.",
-  },
+    id: "3",
+    title: "Giày xe đạp Shimano RC702 - Size 42",
+    category: "apparel",
+    type: "buy_now",
+    price: 31000000,
+    image: "https://images.unsplash.com/photo-1544192240-4a34fed0104c?w=500&auto=format&fit=crop&q=60",
+    location: "Đà Nẵng",
+    condition: "90%",
+    seller: "Lê Hoàng C",
+    description: "Giày dùng được khoảng 6 tháng, đế carbon trầy nhẹ theo thời gian, khóa boa hoạt động hoàn hảo."
+  }
 ];
 
-function formatCurrency(n) {
-  return `$${n.toLocaleString("en-US")}`;
-}
-
-function formatTimeLeft(endMs, nowMs) {
-  const diff = endMs - nowMs;
-  if (diff <= 0) return "Auction ended";
-  const d = Math.floor(diff / days(1));
-  const h = Math.floor((diff % days(1)) / hours(1));
-  const m = Math.floor((diff % hours(1)) / 60000);
-  if (d > 0) return `${d}d ${h}h left`;
-  if (h > 0) return `${h}h ${m}m left`;
-  return `${m}m left`;
-}
-
-function ElevationDivider({ flat = false }) {
-  const path =
-    "M0,95 L50,80 L100,88 L150,55 L200,70 L250,30 L300,58 L350,38 L400,68 L450,48 L500,78 L550,40 L600,60 L650,18 L700,48 L750,28 L800,62 L850,42 L900,72 L950,52 L1000,82 L1050,60 L1100,90 L1150,70 L1200,95";
-  return (
-    <svg
-      viewBox="0 0 1200 100"
-      preserveAspectRatio="none"
-      className="elevation-svg"
-      style={{ width: "100%", height: flat ? 40 : 90, display: "block" }}
-    >
-      <path d={path} fill="none" stroke="var(--caution)" strokeWidth="3" className="elevation-path" />
-    </svg>
-  );
-}
-
-function TreadBar({ fill }) {
-  return (
-    <div className="tread-bar" aria-hidden="true">
-      {[1, 2, 3, 4].map((i) => (
-        <span key={i} className={`tread-seg ${i <= fill ? "tread-on" : ""}`} />
-      ))}
-    </div>
-  );
-}
-
-function Thumb({ category, size = "normal" }) {
-  const meta = catMeta(category);
-  const Icon = meta.icon;
-  return (
-    <div className="thumb" style={{ background: meta.grad }}>
-      <div className="thumb-texture" />
-      <Icon size={size === "large" ? 64 : 40} color="#F5F4EF" strokeWidth={1.5} style={{ opacity: 0.85 }} />
-    </div>
-  );
-}
-
-function ListingCard({ listing, nowMs, onOpen }) {
-  const meta = catMeta(listing.category);
-  const cond = condMeta(listing.condition);
-  return (
-    <button className="card" onClick={() => onOpen(listing)}>
-      <Thumb category={listing.category} />
-      <div className="card-body">
-        <div className="card-eyebrow font-mono">{meta.label}</div>
-        <h3 className="card-title font-body">{listing.title}</h3>
-        <div className="card-cond">
-          <TreadBar fill={cond.fill} />
-          <span className="font-mono cond-label">{cond.label}</span>
-        </div>
-        <div className="card-footer">
-          <div className="card-price font-mono">
-            {listing.type === "fixed"
-              ? formatCurrency(listing.price)
-              : formatCurrency(listing.currentBid)}
-          </div>
-          <div className={`badge ${listing.type === "auction" ? "badge-auction" : "badge-fixed"}`}>
-            {listing.type === "auction" ? <Gavel size={12} /> : <Tag size={12} />}
-            {listing.type === "auction" ? formatTimeLeft(listing.bidEnd, nowMs) : "Buy Now"}
-          </div>
-        </div>
-        <div className="card-meta font-mono">
-          <MapPin size={11} /> {listing.location}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function DetailModal({ listing, nowMs, onClose, onBid, onBuyNow }) {
-  const [bidValue, setBidValue] = useState("");
-  const [bidError, setBidError] = useState("");
-  const meta = catMeta(listing.category);
-  const cond = condMeta(listing.condition);
-  const minBid = listing.type === "auction" ? listing.currentBid + 10 : 0;
-
-  const chartPoints = useMemo(() => {
-    if (!listing.bidHistory || listing.bidHistory.length < 2) return null;
-    const vals = listing.bidHistory;
-    const min = Math.min(...vals);
-    const max = Math.max(...vals) || min + 1;
-    const w = 400, h = 70, pad = 8;
-    return vals
-      .map((v, i) => {
-        const x = (i / (vals.length - 1)) * (w - pad * 2) + pad;
-        const y = h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
-        return `${x},${y}`;
-      })
-      .join(" ");
-  }, [listing.bidHistory]);
-
-  function submitBid() {
-    const n = Number(bidValue);
-    if (!bidValue || Number.isNaN(n) || n < minBid) {
-      setBidError(`Enter at least ${formatCurrency(minBid)}`);
-      return;
-    }
-    onBid(listing.id, n);
-    setBidValue("");
-    setBidError("");
-  }
-
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close">
-          <X size={20} />
-        </button>
-        <Thumb category={listing.category} size="large" />
-        <div className="modal-body">
-          <div className="card-eyebrow font-mono">{meta.label} · {listing.location}</div>
-          <h2 className="modal-title font-display">{listing.title}</h2>
-          <div className="card-cond" style={{ margin: "10px 0" }}>
-            <TreadBar fill={cond.fill} />
-            <span className="font-mono cond-label">{cond.label}</span>
-          </div>
-          <p className="modal-desc font-body">{listing.description}</p>
-
-          {listing.type === "auction" ? (
-            <div className="auction-panel">
-              <div className="auction-stats">
-                <div>
-                  <div className="stat-label font-mono">Current bid</div>
-                  <div className="stat-value font-mono">{formatCurrency(listing.currentBid)}</div>
-                </div>
-                <div>
-                  <div className="stat-label font-mono">Bids</div>
-                  <div className="stat-value font-mono">{listing.bidCount}</div>
-                </div>
-                <div>
-                  <div className="stat-label font-mono"><Clock size={11} style={{ display: "inline", marginRight: 3 }} />Time left</div>
-                  <div className="stat-value font-mono">{formatTimeLeft(listing.bidEnd, nowMs)}</div>
-                </div>
-              </div>
-              {chartPoints && (
-                <svg viewBox="0 0 400 70" className="climb-chart" preserveAspectRatio="none">
-                  <polyline points={chartPoints} fill="none" stroke="var(--route)" strokeWidth="2.5" />
-                </svg>
-              )}
-              <div className="bid-row">
-                <span className="font-mono bid-prefix">$</span>
-                <input
-                  type="number"
-                  className="bid-input font-mono"
-                  placeholder={String(minBid)}
-                  value={bidValue}
-                  onChange={(e) => setBidValue(e.target.value)}
-                />
-                <button className="btn-primary" onClick={submitBid}>Place bid</button>
-              </div>
-              {bidError && <div className="bid-error font-mono">{bidError}</div>}
-              {listing.buyNow && (
-                <button className="btn-secondary" style={{ marginTop: 10 }} onClick={() => onBuyNow(listing)}>
-                  Buy now for {formatCurrency(listing.buyNow)}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="auction-panel">
-              <div className="stat-label font-mono">Price</div>
-              <div className="stat-value font-mono" style={{ fontSize: 28 }}>{formatCurrency(listing.price)}</div>
-              <button className="btn-primary" style={{ marginTop: 12 }} onClick={() => onBuyNow(listing)}>
-                Buy now
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SellForm({ onClose, onSubmit }) {
-  const [form, setForm] = useState({
-    title: "", category: "road", type: "fixed", price: "", startingBid: "",
-    durationDays: "3", condition: "well-ridden", location: "", description: "",
-  });
-  const [error, setError] = useState("");
-
-  function update(key, val) {
-    setForm((f) => ({ ...f, [key]: val }));
-  }
-
-  function submit() {
-    if (!form.title.trim() || !form.location.trim() || !form.description.trim()) {
-      setError("Fill in title, location, and description.");
-      return;
-    }
-    if (form.type === "fixed" && (!form.price || Number(form.price) <= 0)) {
-      setError("Enter a price greater than $0.");
-      return;
-    }
-    if (form.type === "auction" && (!form.startingBid || Number(form.startingBid) <= 0)) {
-      setError("Enter a starting bid greater than $0.");
-      return;
-    }
-    const base = {
-      id: `l-${Date.now()}`,
-      title: form.title.trim(),
-      category: form.category,
-      condition: form.condition,
-      location: form.location.trim(),
-      description: form.description.trim(),
-      createdAt: Date.now(),
-    };
-    const listing =
-      form.type === "fixed"
-        ? { ...base, type: "fixed", price: Number(form.price) }
-        : {
-            ...base,
-            type: "auction",
-            startingBid: Number(form.startingBid),
-            currentBid: Number(form.startingBid),
-            buyNow: null,
-            bidCount: 0,
-            bidEnd: Date.now() + days(Number(form.durationDays)),
-            bidHistory: [Number(form.startingBid)],
-          };
-    onSubmit(listing);
-  }
-
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close">
-          <X size={20} />
-        </button>
-        <div className="modal-body" style={{ paddingTop: 8 }}>
-          <div className="card-eyebrow font-mono">List your gear</div>
-          <h2 className="modal-title font-display">What are you selling?</h2>
-
-          <label className="field-label font-mono">Title</label>
-          <input className="field-input font-body" value={form.title}
-            onChange={(e) => update("title", e.target.value)}
-            placeholder="e.g. 2020 Trek Domane SL6 — 54cm" />
-
-          <div className="field-grid">
-            <div>
-              <label className="field-label font-mono">Category</label>
-              <select className="field-input font-body" value={form.category}
-                onChange={(e) => update("category", e.target.value)}>
-                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="field-label font-mono">Condition</label>
-              <select className="field-input font-body" value={form.condition}
-                onChange={(e) => update("condition", e.target.value)}>
-                {CONDITIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <label className="field-label font-mono">Listing type</label>
-          <div className="type-toggle">
-            <button className={form.type === "fixed" ? "toggle-on" : ""} onClick={() => update("type", "fixed")}>
-              <Tag size={14} /> Fixed price
-            </button>
-            <button className={form.type === "auction" ? "toggle-on" : ""} onClick={() => update("type", "auction")}>
-              <Gavel size={14} /> Auction
-            </button>
-          </div>
-
-          {form.type === "fixed" ? (
-            <div>
-              <label className="field-label font-mono">Price ($)</label>
-              <input type="number" className="field-input font-mono" value={form.price}
-                onChange={(e) => update("price", e.target.value)} placeholder="450" />
-            </div>
-          ) : (
-            <div className="field-grid">
-              <div>
-                <label className="field-label font-mono">Starting bid ($)</label>
-                <input type="number" className="field-input font-mono" value={form.startingBid}
-                  onChange={(e) => update("startingBid", e.target.value)} placeholder="200" />
-              </div>
-              <div>
-                <label className="field-label font-mono">Duration</label>
-                <select className="field-input font-body" value={form.durationDays}
-                  onChange={(e) => update("durationDays", e.target.value)}>
-                  <option value="1">1 day</option>
-                  <option value="3">3 days</option>
-                  <option value="5">5 days</option>
-                  <option value="7">7 days</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          <label className="field-label font-mono">Location</label>
-          <input className="field-input font-body" value={form.location}
-            onChange={(e) => update("location", e.target.value)} placeholder="e.g. Boulder, CO" />
-
-          <label className="field-label font-mono">Description</label>
-          <textarea className="field-input font-body" rows={4} value={form.description}
-            onChange={(e) => update("description", e.target.value)}
-            placeholder="Condition details, upgrades, reason for selling…" />
-
-          {error && <div className="bid-error font-mono">{error}</div>}
-          <button className="btn-primary" style={{ marginTop: 14, width: "100%" }} onClick={submit}>
-            Publish listing
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+const CATEGORIES = [
+  { key: "all", label: "Tất cả", icon: Bike, grad: "from-blue-500 to-indigo-600" },
+  { key: "road", label: "Xe Road", icon: Bike, grad: "from-red-500 to-orange-500" },
+  { key: "mtb", label: "Xe MTB", icon: TreePine, grad: "from-green-500 to-emerald-600" },
+  { key: "gravel", label: "Xe Gravel & CX", icon: Milestone, grad: "from-amber-500 to-yellow-600" },
+  { key: "parts", label: "Phụ tùng", icon: Cog, grad: "from-purple-500 to-pink-500" },
+  { key: "accessories", label: "Phụ kiện", icon: Wrench, grad: "from-teal-500 to-cyan-600" },
+  { key: "apparel", label: "Trang phục", icon: Shirt, grad: "from-fuchsia-500 to-rose-500" }
+];
 
 export default function Spoke() {
   const [listings, setListings] = useState([]);
@@ -449,421 +66,538 @@ export default function Spoke() {
   const [sort, setSort] = useState("newest");
   const [selected, setSelected] = useState(null);
   const [showSell, setShowSell] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutItem, setCheckoutItem] = useState(null);
   const [toast, setToast] = useState("");
   const [nowMs, setNowMs] = useState(Date.now());
   const toastTimer = useRef(null);
 
+  // Form đăng tin mới
+  const [newTitle, setNewTitle] = useState("");
+  const [newCategory, setNewCategory] = useState("road");
+  const [newType, setNewType] = useState("buy_now");
+  const [newPrice, setNewPrice] = useState("");
+  const [newDuration, setNewDuration] = useState("24");
+  const [newLocation, setNewLocation] = useState("TP. Hồ Chí Minh");
+  const [newCondition, setNewCondition] = useState("100% (New)");
+  const [newDescription, setNewDescription] = useState("");
+
+  // Giá đấu mới
+  const [bidAmount, setBidAmount] = useState("");
+
+  // Quản lý thời gian thực cho các tin đấu giá
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
+    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Đọc dữ liệu từ localStorage an toàn khi tải trang
+  useEffect(() => {
+    function load() {
       try {
-        const res = await window.storage.get("spoke:listings", false);
-        if (res && res.value) {
-          if (!cancelled) setListings(JSON.parse(res.value));
+        const savedData = localStorage.getItem("spoke:listings");
+        if (savedData) {
+          setListings(JSON.parse(savedData));
         } else {
-          throw new Error("no data");
+          setListings(SEED_LISTINGS);
+          localStorage.setItem("spoke:listings", JSON.stringify(SEED_LISTINGS));
         }
-      } catch {
-        if (!cancelled) setListings(SEED_LISTINGS);
-        try { await window.storage.set("spoke:listings", JSON.stringify(SEED_LISTINGS), false); } catch {}
+      } catch (e) {
+        setListings(SEED_LISTINGS);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
     load();
-    return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    const t = setInterval(() => setNowMs(Date.now()), 30000);
-    return () => clearInterval(t);
-  }, []);
-
-  async function persist(next) {
+  // Lưu dữ liệu vào localStorage an toàn
+  function persist(next) {
     setListings(next);
-    try { await window.storage.set("spoke:listings", JSON.stringify(next), false); } catch {}
+    try {
+      localStorage.setItem("spoke:listings", JSON.stringify(next));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function showToast(msg) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(msg);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 3200);
+    toastTimer.current = setTimeout(() => setToast(""), 3000);
   }
 
-  function handleBid(id, amount) {
-    const next = listings.map((l) => {
-      if (l.id !== id) return l;
-      return {
-        ...l,
-        currentBid: amount,
-        bidCount: (l.bidCount || 0) + 1,
-        bidHistory: [...(l.bidHistory || []), amount],
-      };
-    });
-    persist(next);
-    setSelected((s) => (s ? next.find((l) => l.id === id) : s));
-    showToast(`Bid placed — you're leading at ${formatCurrency(amount)}`);
-  }
-
-  function handleBuyNow(listing) {
-    showToast("Reserved! Checkout isn't part of this demo yet.");
-    setSelected(null);
-  }
-
-  function handleNewListing(listing) {
-    const next = [listing, ...listings];
-    persist(next);
-    setShowSell(false);
-    showToast("Listing published.");
-  }
-
-  function resetDemo() {
-    persist(SEED_LISTINGS);
-    showToast("Demo data reset.");
-  }
-
+  // Bộ lọc và sắp xếp dữ liệu
   const filtered = useMemo(() => {
-    let out = listings.filter((l) => {
-      if (category !== "all" && l.category !== category) return false;
-      if (type !== "all" && l.type !== type) return false;
-      if (search.trim() && !l.title.toLowerCase().includes(search.trim().toLowerCase())) return false;
-      return true;
-    });
-    if (sort === "newest") out = out.sort((a, b) => b.createdAt - a.createdAt);
-    if (sort === "price-asc") out = out.sort((a, b) => (a.type === "fixed" ? a.price : a.currentBid) - (b.type === "fixed" ? b.price : b.currentBid));
-    if (sort === "ending-soon") out = out.sort((a, b) => (a.bidEnd || Infinity) - (b.bidEnd || Infinity));
-    return out;
+    let res = [...listings];
+    if (category !== "all") res = res.filter((x) => x.category === category);
+    if (type !== "all") res = res.filter((x) => x.type === type);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      res = res.filter((x) => x.title.toLowerCase().includes(q) || x.description.toLowerCase().includes(q));
+    }
+    if (sort === "newest") res.reverse();
+    else if (sort === "price_asc") res.sort((a, b) => a.price - b.price);
+    else if (sort === "price_desc") res.sort((a, b) => b.price - a.price);
+    return res;
   }, [listings, category, type, search, sort]);
 
+  // Xử lý đặt giá đấu
+  function handleBid(e) {
+    e.preventDefault();
+    const amt = parseFloat(bidAmount);
+    if (!amt || isNaN(amt)) return showToast("Vui lòng nhập giá hợp lệ");
+    
+    const currentPrice = selected.currentBid || selected.price;
+    if (amt <= currentPrice) {
+      return showToast("Giá đấu tiếp theo phải cao hơn giá hiện tại!");
+    }
+
+    const next = listings.map((x) => {
+      if (x.id === selected.id) {
+        const updated = {
+          ...x,
+          currentBid: amt,
+          bidsCount: (x.bidsCount || 0) + 1
+        };
+        setSelected(updated);
+        return updated;
+      }
+      return x;
+    });
+    persist(next);
+    setBidAmount("");
+    showToast("Đặt giá đấu thành công!");
+  }
+
+  // Xử lý đăng sản phẩm mới
+  function handleCreate(e) {
+    e.preventDefault();
+    if (!newTitle.trim() || !newPrice) return showToast("Vui lòng điền đầy đủ thông tin");
+
+    const item = {
+      id: Date.now().toString(),
+      title: newTitle,
+      category: newCategory,
+      type: newType,
+      price: parseFloat(newPrice),
+      image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop&q=60",
+      location: newLocation,
+      condition: newCondition,
+      seller: "Bạn",
+      description: newDescription,
+      ...(newType === "auction" ? { currentBid: parseFloat(newPrice), bidsCount: 0, endTime: Date.now() + parseFloat(newDuration) * 3600000 } : {})
+    };
+
+    persist([item, ...listings]);
+    setShowSell(false);
+    // Reset form
+    setNewTitle("");
+    setNewPrice("");
+    setNewDescription("");
+    showToast("Đăng tin thành công!");
+  }
+
+  // Định dạng hiển thị tiền tệ Việt Nam VNĐ
+  function fmtPrice(v) {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
+  }
+
+  // Định dạng đếm ngược thời gian đấu giá
+  function renderCountdown(endTime) {
+    const diff = endTime - nowMs;
+    if (diff <= 0) return <span className="text-red-500 font-bold">Đã kết thúc</span>;
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return (
+      <span className="text-amber-600 font-mono font-medium">
+        {hrs > 0 ? `${hrs}h ` : ""}{mins}m {secs}s
+      </span>
+    );
+  }
+
   return (
-    <div className="spoke-app font-body">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased font-sans pb-12">
+      {/* CSS Nhúng trực tiếp chống lỗi Tailwind CDN build */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
-
-        .spoke-app {
-          --asphalt: #1C1F1E;
-          --chalk: #EEF1EC;
-          --route: #1B6F5C;
-          --route-dark: #123F35;
-          --flare: #E8572B;
-          --steel: #7C8683;
-          --caution: #F2B705;
-          background: var(--chalk);
-          color: var(--asphalt);
-          min-height: 100vh;
-        }
-        .font-display { font-family: 'Oswald', sans-serif; }
-        .font-body { font-family: 'Inter', sans-serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-        .spoke-header {
-          background: var(--asphalt);
-          color: var(--chalk);
-          padding: 18px 20px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          position: sticky; top: 0; z-index: 20;
-        }
-        .logo {
-          font-family: 'Oswald', sans-serif;
-          font-weight: 700;
-          font-size: 22px;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          color: var(--chalk);
-        }
-        .logo span { color: var(--caution); }
-        .btn-sell {
-          background: var(--flare);
-          color: white;
-          border: none;
-          padding: 9px 16px;
-          border-radius: 3px;
-          font-family: 'Oswald', sans-serif;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          font-size: 13px;
-          display: flex; align-items: center; gap: 6px;
-          cursor: pointer;
-          transition: transform 0.15s ease, background 0.15s ease;
-        }
-        .btn-sell:hover { background: #d24a1f; transform: translateY(-1px); }
-
-        .hero {
-          background: var(--asphalt);
-          color: var(--chalk);
-          padding: 56px 20px 0;
-          text-align: center;
-        }
-        .hero h1 {
-          font-family: 'Oswald', sans-serif;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-          font-size: clamp(32px, 6vw, 56px);
-          margin: 0 0 12px;
-        }
-        .hero p {
-          color: #C7CDC9;
-          max-width: 520px;
-          margin: 0 auto 26px;
-          font-size: 16px;
-          line-height: 1.5;
-        }
-        .search-wrap {
-          max-width: 520px;
-          margin: 0 auto 30px;
-          background: #2A2E2C;
-          border: 1px solid #3C4340;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          padding: 10px 14px;
-          gap: 10px;
-        }
-        .search-wrap input {
-          background: transparent;
-          border: none;
-          outline: none;
-          color: var(--chalk);
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 14px;
-          width: 100%;
-        }
-        .search-wrap input::placeholder { color: #7A827F; }
-
-        .elevation-svg { display: block; }
-        .elevation-path {
-          stroke-dasharray: 1400;
-          stroke-dashoffset: 1400;
-        }
-        @media (prefers-reduced-motion: no-preference) {
-          .elevation-path { animation: draw 1.6s ease forwards 0.15s; }
-        }
-        @keyframes draw { to { stroke-dashoffset: 0; } }
-
-        .cat-row {
-          display: flex; gap: 10px; overflow-x: auto;
-          padding: 18px 20px; background: var(--chalk);
-          border-bottom: 1px solid #DADFD9;
-        }
-        .cat-chip {
-          display: flex; align-items: center; gap: 7px;
-          background: white; border: 1px solid #DADFD9;
-          padding: 8px 14px; border-radius: 999px;
-          font-family: 'Oswald', sans-serif; font-size: 13px;
-          letter-spacing: 0.02em; text-transform: uppercase;
-          white-space: nowrap; cursor: pointer;
-          transition: transform 0.12s ease, border-color 0.12s ease;
-        }
-        .cat-chip:hover { transform: translateY(-1px); }
-        .cat-chip.active { background: var(--route); color: white; border-color: var(--route); }
-
-        .filter-bar {
-          display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-          padding: 14px 20px; background: var(--chalk);
-        }
-        .type-pill {
-          display: flex; border: 1px solid #C7CDC9; border-radius: 4px; overflow: hidden;
-        }
-        .type-pill button {
-          border: none; background: white; padding: 7px 14px; cursor: pointer;
-          font-family: 'JetBrains Mono', monospace; font-size: 12px;
-        }
-        .type-pill button.active { background: var(--asphalt); color: white; }
-        .sort-select {
-          border: 1px solid #C7CDC9; border-radius: 4px; padding: 7px 10px;
-          font-family: 'JetBrains Mono', monospace; font-size: 12px; background: white;
-        }
-        .result-count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--steel); margin-left: auto; }
-
-        .grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 18px; padding: 6px 20px 40px;
-        }
-        .card {
-          background: white; border: 1px solid #DADFD9; border-radius: 6px;
-          overflow: hidden; text-align: left; cursor: pointer; padding: 0;
-          display: flex; flex-direction: column;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(28,31,30,0.12); }
-        .thumb {
-          height: 130px; display: flex; align-items: center; justify-content: center;
-          position: relative; overflow: hidden;
-        }
-        .thumb-texture {
-          position: absolute; inset: 0;
-          background: repeating-linear-gradient(-15deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 2px, transparent 2px, transparent 14px);
-        }
-        .card-body { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-        .card-eyebrow { font-size: 11px; color: var(--steel); text-transform: uppercase; letter-spacing: 0.04em; }
-        .card-title { font-size: 15px; font-weight: 600; line-height: 1.3; margin: 0; }
-        .card-cond { display: flex; align-items: center; gap: 8px; }
-        .cond-label { font-size: 11px; color: var(--steel); }
-        .tread-bar { display: flex; gap: 2px; }
-        .tread-seg { width: 8px; height: 8px; border-radius: 1px; background: #DADFD9; }
-        .tread-on { background: var(--route); }
-        .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 6px; }
-        .card-price { font-size: 17px; font-weight: 700; }
-        .badge {
-          font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
-          display: flex; align-items: center; gap: 4px;
-          padding: 4px 8px; border-radius: 999px;
-        }
-        .badge-auction { background: #FDF1D6; color: #8a6600; }
-        .badge-fixed { background: #E4F1EC; color: var(--route-dark); }
-        .card-meta { display: flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--steel); }
-
-        .overlay {
-          position: fixed; inset: 0; background: rgba(20,22,21,0.6);
-          display: flex; align-items: center; justify-content: center;
-          padding: 20px; z-index: 50; overflow-y: auto;
-        }
-        .modal {
-          background: white; border-radius: 8px; max-width: 560px; width: 100%;
-          max-height: 90vh; overflow-y: auto; position: relative;
-        }
-        .modal-close {
-          position: absolute; top: 12px; right: 12px; background: white;
-          border: 1px solid #DADFD9; border-radius: 50%; width: 32px; height: 32px;
-          display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5;
-        }
-        .modal-body { padding: 20px 22px 26px; }
-        .modal-title { font-size: 24px; margin: 4px 0 6px; text-transform: none; }
-        .modal-desc { font-size: 14px; line-height: 1.6; color: #3A3E3C; margin: 10px 0 16px; }
-        .auction-panel { background: var(--chalk); border-radius: 6px; padding: 16px; margin-top: 10px; }
-        .auction-stats { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .stat-label { font-size: 10.5px; color: var(--steel); text-transform: uppercase; letter-spacing: 0.03em; }
-        .stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
-        .climb-chart { width: 100%; height: 50px; margin: 8px 0; }
-        .bid-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-        .bid-prefix { color: var(--steel); }
-        .bid-input {
-          flex: 1; border: 1px solid #C7CDC9; border-radius: 4px; padding: 9px 10px; font-size: 14px;
-        }
-        .bid-error { color: var(--flare); font-size: 12px; margin-top: 6px; }
-        .btn-primary {
-          background: var(--route); color: white; border: none; padding: 10px 18px;
-          border-radius: 4px; font-family: 'Oswald', sans-serif; font-weight: 600;
-          text-transform: uppercase; letter-spacing: 0.03em; font-size: 13px; cursor: pointer;
-        }
-        .btn-primary:hover { background: var(--route-dark); }
-        .btn-secondary {
-          background: white; color: var(--asphalt); border: 1px solid #C7CDC9; padding: 10px 18px;
-          border-radius: 4px; font-family: 'Oswald', sans-serif; font-weight: 600;
-          text-transform: uppercase; letter-spacing: 0.03em; font-size: 13px; cursor: pointer; width: 100%;
-        }
-
-        .field-label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--steel); margin: 12px 0 4px; }
-        .field-input {
-          width: 100%; border: 1px solid #C7CDC9; border-radius: 4px; padding: 9px 10px; font-size: 14px; box-sizing: border-box;
-        }
-        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .type-toggle { display: flex; gap: 8px; margin-top: 4px; }
-        .type-toggle button {
-          flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-          padding: 9px; border: 1px solid #C7CDC9; border-radius: 4px; background: white; cursor: pointer;
-          font-family: 'JetBrains Mono', monospace; font-size: 12px;
-        }
-        .type-toggle .toggle-on { background: var(--asphalt); color: white; border-color: var(--asphalt); }
-
-        .toast {
-          position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-          background: var(--asphalt); color: white; padding: 12px 20px; border-radius: 999px;
-          font-family: 'JetBrains Mono', monospace; font-size: 13px; z-index: 60;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-        }
-        .footer {
-          text-align: center; padding: 24px; color: var(--steel); font-size: 12px;
-          display: flex; align-items: center; justify-content: center; gap: 6px;
-        }
-        .footer button {
-          background: none; border: none; color: var(--route-dark); cursor: pointer;
-          display: flex; align-items: center; gap: 4px; font-size: 12px; font-family: 'JetBrains Mono', monospace;
-        }
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--steel); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      <header className="spoke-header">
-        <div className="logo">SPOKE<span>.</span></div>
-        <button className="btn-sell" onClick={() => setShowSell(true)}>
-          <Plus size={15} /> Sell your gear
-        </button>
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setCategory("all"); setType("all"); setSelected(null); }}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-200">
+              <Bike className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <span className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              SPOKE
+            </span>
+          </div>
+
+          {/* Ô Tìm Kiếm */}
+          <div className="flex-1 max-w-md relative hidden sm:block">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm xe đạp, phụ tùng..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 bg-slate-100 border-none rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+
+          <button
+            onClick={() => setShowSell(true)}
+            className="h-10 px-4 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 shadow-md active:scale-95 transition flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> Đăng tin
+          </button>
+        </div>
       </header>
 
-      <section className="hero">
-        <h1>Your garage has<br />a market value.</h1>
-        <p>List the bike gathering dust, bid on your next gravel rig, or hunt down a discontinued groupset. Built by riders, for riders.</p>
-        <div className="search-wrap">
-          <Search size={16} color="#7A827F" />
+      {/* Giao diện chính */}
+      <main className="max-w-7xl mx-auto px-4 mt-6">
+        {/* Thanh tìm kiếm trên Mobile */}
+        <div className="relative mb-6 sm:hidden">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
-            placeholder="Search frames, groupsets, jerseys…"
+            type="text"
+            placeholder="Tìm kiếm sản phẩm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <ElevationDivider />
-      </section>
 
-      <nav className="cat-row">
-        <div className={`cat-chip ${category === "all" ? "active" : ""}`} onClick={() => setCategory("all")}>
-          All gear
+        {/* Danh mục hàng ngang dạng cuộn */}
+        <div className="overflow-x-auto no-scrollbar flex gap-3 pb-2">
+          {CATEGORIES.map((x) => {
+            const Icon = x.icon;
+            const active = category === x.key;
+            return (
+              <button
+                key={x.key}
+                onClick={() => { setCategory(x.key); setSelected(null); }}
+                className={`flex items-center gap-2 px-4 h-11 rounded-xl text-sm font-medium whitespace-nowrap border transition ${
+                  active
+                    ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${active ? "bg-white/20 text-white" : `bg-gradient-to-tr ${x.grad} text-white`}`}>
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+                {x.label}
+              </button>
+            );
+          })}
         </div>
-        {CATEGORIES.map((c) => {
-          const Icon = c.icon;
-          return (
-            <div key={c.key} className={`cat-chip ${category === c.key ? "active" : ""}`} onClick={() => setCategory(c.key)}>
-              <Icon size={14} /> {c.label}
+
+        {/* Thanh lọc phụ và Sắp xếp */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-200">
+          <div className="flex gap-1.5 bg-slate-200/60 p-1 rounded-xl">
+            <button
+              onClick={() => setType("all")}
+              className={`px-4 h-8 rounded-lg text-xs font-semibold transition ${type === "all" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
+            >
+              Tất cả loại tin
+            </button>
+            <button
+              onClick={() => setType("auction")}
+              className={`px-4 h-8 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${type === "auction" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
+            >
+              <Gavel className="w-3 h-3 text-amber-500" /> Đấu giá
+            </button>
+            <button
+              onClick={() => setType("buy_now")}
+              className={`px-4 h-8 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${type === "buy_now" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
+            >
+              <Tag className="w-3 h-3 text-emerald-500" /> Mua ngay
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-400">Sắp xếp:</span>
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="appearance-none bg-white border border-slate-200 rounded-xl pl-3 pr-8 h-9 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá tăng dần</option>
+                <option value="price_desc">Giá giảm dần</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-          );
-        })}
-      </nav>
-
-      <div className="filter-bar">
-        <div className="type-pill">
-          <button className={type === "all" ? "active" : ""} onClick={() => setType("all")}>All</button>
-          <button className={type === "fixed" ? "active" : ""} onClick={() => setType("fixed")}>Buy Now</button>
-          <button className={type === "auction" ? "active" : ""} onClick={() => setType("auction")}>Auction</button>
+          </div>
         </div>
-        <select className="sort-select" value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="newest">Newest listed</option>
-          <option value="price-asc">Price: low to high</option>
-          <option value="ending-soon">Ending soonest</option>
-        </select>
-        <div className="result-count">{loading ? "Loading…" : `${filtered.length} listing${filtered.length === 1 ? "" : "s"}`}</div>
-      </div>
 
-      {!loading && filtered.length === 0 ? (
-        <div className="empty-state font-mono">
-          No gear matches those filters yet. Try clearing a filter, or be the first to list one.
-        </div>
-      ) : (
-        <div className="grid">
-          {filtered.map((l) => (
-            <ListingCard key={l.id} listing={l} nowMs={nowMs} onOpen={setSelected} />
-          ))}
-        </div>
-      )}
+        {/* Trạng thái Loading hoặc Trống */}
+        {loading ? (
+          <div className="py-20 text-center text-slate-400 text-sm">Đang tải sản phẩm dữ liệu...</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-20 text-center max-w-sm mx-auto">
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-4">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 mb-1">Không tìm thấy kết quả</h3>
+            <p className="text-sm text-slate-500">Hãy thử thay đổi từ khóa hoặc bộ lọc danh mục xem sao nhé.</p>
+          </div>
+        ) : (
+          /* Grid Danh Sách Tin Đăng */
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+            {filtered.map((item) => {
+              const isAuction = item.type === "auction";
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelected(item)}
+                  className="bg-white rounded-2xl border border-slate-150 overflow-hidden shadow-sm hover:shadow-md transition duration-200 cursor-pointer flex flex-col group"
+                >
+                  <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                    <div className="absolute top-3 left-3 flex gap-1.5">
+                      {isAuction ? (
+                        <span className="px-2.5 h-6 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-wider uppercase flex items-center gap-1 shadow-sm">
+                          <Gavel className="w-3 h-3" /> ĐẤU GIÁ
+                        </span>
+                      ) : (
+                        <span className="px-2.5 h-6 rounded-lg bg-emerald-500 text-white text-[10px] font-black tracking-wider uppercase flex items-center gap-1 shadow-sm">
+                          <Tag className="w-3 h-3" /> MUA NGAY
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-      <div className="footer">
-        Demo marketplace — bidding works, checkout doesn't.
-        <button onClick={resetDemo}><RotateCcw size={12} /> Reset demo data</button>
-      </div>
+                  <div className="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition mb-2">
+                        {item.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 mb-3">
+                        <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" /> {item.location}</span>
+                        <span>•</span>
+                        <span>{item.condition}</span>
+                      </div>
+                    </div>
 
+                    <div className="pt-3 border-t border-slate-100 flex items-end justify-between">
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                          {isAuction ? "Giá đấu hiện tại" : "Giá bán đứt"}
+                        </p>
+                        <p className={`font-extrabold text-lg ${isAuction ? "text-amber-600" : "text-slate-900"}`}>
+                          {fmtPrice(isAuction ? item.currentBid : item.price)}
+                        </p>
+                      </div>
+                      {isAuction && (
+                        <div className="text-right">
+                          <p className="text-[10px] text-slate-400 font-bold flex items-center gap-0.5 justify-end">
+                            <Clock className="w-3 h-3" /> Còn lại
+                          </p>
+                          <div className="text-xs">{renderCountdown(item.endTime)}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* MODAL CHI TIẾT SẢN PHẨM */}
       {selected && (
-        <DetailModal
-          listing={selected}
-          nowMs={nowMs}
-          onClose={() => setSelected(null)}
-          onBid={handleBid}
-          onBuyNow={handleBuyNow}
-        />
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+            <button
+              onClick={() => setSelected(null)}
+              className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center absolute top-4 right-4 z-10 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="aspect-[16/9] w-full bg-slate-100">
+              <img src={selected.image} alt={selected.title} className="w-full h-full object-cover" />
+            </div>
+
+            <div className="p-6">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className="px-2.5 h-6 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold uppercase">
+                  Danh mục: {selected.category}
+                </span>
+                <span className="px-2.5 h-6 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
+                  Tình trạng: {selected.condition}
+                </span>
+                <span className="px-2.5 h-6 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-semibold flex items-center gap-1">
+                  <MapPin className="w-3 h-3" /> {selected.location}
+                </span>
+              </div>
+
+              <h2 className="text-xl font-extrabold text-slate-900 mb-2">{selected.title}</h2>
+              <p className="text-xs text-slate-400 mb-4">Người đăng tin: <span className="font-semibold text-slate-600">{selected.seller}</span></p>
+              
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-150 text-sm text-slate-600 leading-relaxed mb-6">
+                <p className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-1">Mô tả chi tiết</p>
+                {selected.description}
+              </div>
+
+              {/* Khu vực tương tác: Đấu giá / Mua đứt */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    {selected.type === "auction" ? "Mức giá hiện tại" : "Giá niêm yết"}
+                  </span>
+                  <p className="text-2xl font-black text-slate-900">
+                    {fmtPrice(selected.type === "auction" ? selected.currentBid : selected.price)}
+                  </p>
+                  {selected.type === "auction" && (
+                    <p className="text-xs text-slate-500 mt-0.5">Số lượt đã đấu giá: <span className="font-bold text-slate-700">{selected.bidsCount || 0} lượt</span></p>
+                  )}
+                </div>
+
+                {selected.type === "auction" ? (
+                  <form onSubmit={handleBid} className="flex gap-2 w-full sm:w-auto">
+                    <input
+                      type="number"
+                      placeholder="Nhập giá đấu..."
+                      value={bidAmount}
+                      onChange={(e) => setBidAmount(e.target.value)}
+                      className="w-full sm:w-36 h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                    />
+                    <button type="submit" className="h-11 px-5 bg-amber-500 text-white font-bold rounded-xl text-sm shadow-md hover:bg-amber-600 active:scale-95 transition whitespace-nowrap">
+                      Đấu giá
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => { setCheckoutItem(selected); setShowCheckout(true); }}
+                    className="w-full sm:w-auto h-11 px-8 bg-emerald-500 text-white font-bold rounded-xl text-sm shadow-md hover:bg-emerald-600 active:scale-95 transition"
+                  >
+                    Mua Ngay
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-      {showSell && <SellForm onClose={() => setShowSell(false)} onSubmit={handleNewListing} />}
-      {toast && <div className="toast">{toast}</div>}
+
+      {/* MODAL ĐĂNG TIN MỚI */}
+      {showSell && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 animate-in fade-in zoom-in-95 duration-150">
+            <button onClick={() => setShowSell(false)} className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center absolute top-4 right-4 transition">
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-xl font-black text-slate-900 mb-6">Tạo Tin Đăng Mới</h2>
+
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Tiêu đề sản phẩm</label>
+                <input type="text" required placeholder="Ví dụ: Xe đạp touring Giant Escape..." value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Danh mục</label>
+                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="road">Xe Road</option>
+                    <option value="mtb">Xe MTB</option>
+                    <option value="gravel">Xe Gravel</option>
+                    <option value="parts">Phụ tùng</option>
+                    <option value="accessories">Phụ kiện</option>
+                    <option value="apparel">Trang phục</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Hình thức bán</label>
+                  <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="buy_now">Mua ngay (Giá cố định)</option>
+                    <option value="auction">Đấu giá sàn</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    {newType === "auction" ? "Giá khởi điểm (VNĐ)" : "Giá bán đứt (VNĐ)"}
+                  </label>
+                  <input type="number" required placeholder="Nhập giá..." value={newPrice} onChange={(e) => setNewPrice(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                {newType === "auction" ? (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Thời hạn sàn (Giờ)</label>
+                    <select value={newDuration} onChange={(e) => setNewDuration(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                      <option value="1">1 giờ</option>
+                      <option value="4">4 giờ</option>
+                      <option value="12">12 giờ</option>
+                      <option value="24">24 giờ (1 ngày)</option>
+                      <option value="72">72 giờ (3 ngày)</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Tình trạng đồ</label>
+                    <input type="text" placeholder="Ví dụ: 95%, Mới tinh..." value={newCondition} onChange={(e) => setNewCondition(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Khu vực giao dịch</label>
+                <input type="text" placeholder="Ví dụ: Đà Nẵng, Hà Nội..." value={newLocation} onChange={(e) => setNewLocation(e.target.value)} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Mô tả sản phẩm</label>
+                <textarea rows="3" placeholder="Ghi chú chi tiết cấu hình, hãng sản xuất, phụ kiện đi kèm..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md active:scale-95 transition mt-4">
+                Đăng tin công khai
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MUA HÀNG THÀNH CÔNG */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center relative animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">🎉</div>
+            <h3 className="text-lg font-black text-slate-900 mb-1">Chốt Đơn Thành Công!</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Bạn đã mua thành công mặt hàng <span className="font-bold text-slate-800">{checkoutItem?.title}</span> với giá <span className="font-bold text-emerald-600">{fmtPrice(checkoutItem?.price)}</span>.
+            </p>
+            <button
+              onClick={() => { setShowCheckout(false); setSelected(null); }}
+              className="w-full h-11 bg-slate-900 text-white font-semibold rounded-xl text-sm hover:bg-slate-800 transition"
+            >
+              Đóng và tiếp tục xem
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* THÔNG BÁO TOAST POPUP */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 bg-slate-900/95 text-white text-xs font-semibold rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <span>{toast}</span>
+        </div>
+      )}
     </div>
   );
 }
